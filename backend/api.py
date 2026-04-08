@@ -10,9 +10,26 @@ def clean_text_basic(t: str) -> str:
     t = str(t).lower()
     t = re.sub(r"<br\s*/?>", " ", t)       
     t = re.sub(r"http\S+|www\.\S+", " ", t) 
-    t = re.sub(r"[^a-z0-9\s']", " ", t)     
-    t = re.sub(r"\s+", " ", t).strip()      
-    return t
+    t = re.sub(r"[^a-z0-9\s'\.,!\?]", " ", t)
+    
+    words = t.split()
+    negation_words = {"not", "isn't", "wasn't", "don't", "doesn't", "didn't", "never", "no", "cannot", "can't", "ain't", "nowhere", "nothing", "hardly", "barely"}
+    clause_enders = {".", ",", "!", "?", ";", ":"}
+    
+    transformed_words = []
+    negate_flag = False
+    
+    for word in words:
+        has_ender = any(ender in word for ender in clause_enders)
+        clean_w = re.sub(r"[^a-z0-9']", "", word)
+        if clean_w:
+            transformed_words.append(clean_w + "_neg" if negate_flag else clean_w)
+            if clean_w in negation_words:
+                negate_flag = True
+        if has_ender or clean_w == "but":
+            negate_flag = False
+            
+    return " ".join(transformed_words)
 
 # Load Model and Vectorizer from the parent directory
 try:
@@ -56,4 +73,4 @@ def predict():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5001)

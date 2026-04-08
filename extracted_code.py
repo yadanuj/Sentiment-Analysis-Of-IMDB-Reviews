@@ -41,11 +41,28 @@ else:
     
     def clean_text_basic(t: str) -> str:
         t = str(t).lower()
-        t = re.sub(r"<br\s*/?>", " ", t)       # Remove IMDB HTML breaks
-        t = re.sub(r"http\S+|www\.\S+", " ", t) # Remove URLs
-        t = re.sub(r"[^a-z0-9\s']", " ", t)     # Remove special characters
-        t = re.sub(r"\s+", " ", t).strip()      # Remove extra whitespaces
-        return t
+        t = re.sub(r"<br\s*/?>", " ", t)       
+        t = re.sub(r"http\S+|www\.\S+", " ", t) 
+        t = re.sub(r"[^a-z0-9\s'\.,!\?]", " ", t)
+        
+        words = t.split()
+        negation_words = {"not", "isn't", "wasn't", "don't", "doesn't", "didn't", "never", "no", "cannot", "can't", "ain't", "nowhere", "nothing", "hardly", "barely"}
+        clause_enders = {".", ",", "!", "?", ";", ":"}
+        
+        transformed_words = []
+        negate_flag = False
+        
+        for word in words:
+            has_ender = any(ender in word for ender in clause_enders)
+            clean_w = re.sub(r"[^a-z0-9']", "", word)
+            if clean_w:
+                transformed_words.append(clean_w + "_neg" if negate_flag else clean_w)
+                if clean_w in negation_words:
+                    negate_flag = True
+            if has_ender or clean_w == "but":
+                negate_flag = False
+                
+        return " ".join(transformed_words)
 
     # Clean the reviews
     df['clean_text'] = df['review'].apply(clean_text_basic)
@@ -69,7 +86,7 @@ else:
     
     # 5. Preprocessing: TF-IDF Vectorization
     print("✅ Vectorizing text using TF-IDF...")
-    vectorizer = TfidfVectorizer(max_features=10000, stop_words='english')
+    vectorizer = TfidfVectorizer(max_features=100000, ngram_range=(1, 2), stop_words=None)
     X_train_tfidf = vectorizer.fit_transform(X_train)
     X_test_tfidf = vectorizer.transform(X_test)
     
@@ -171,9 +188,26 @@ else:
         t = str(t).lower()
         t = re.sub(r"<br\s*/?>", " ", t)       
         t = re.sub(r"http\S+|www\.\S+", " ", t) 
-        t = re.sub(r"[^a-z0-9\s']", " ", t)     
-        t = re.sub(r"\s+", " ", t).strip()      
-        return t
+        t = re.sub(r"[^a-z0-9\s'\.,!\?]", " ", t)
+        
+        words = t.split()
+        negation_words = {"not", "isn't", "wasn't", "don't", "doesn't", "didn't", "never", "no", "cannot", "can't", "ain't", "nowhere", "nothing", "hardly", "barely"}
+        clause_enders = {".", ",", "!", "?", ";", ":"}
+        
+        transformed_words = []
+        negate_flag = False
+        
+        for word in words:
+            has_ender = any(ender in word for ender in clause_enders)
+            clean_w = re.sub(r"[^a-z0-9']", "", word)
+            if clean_w:
+                transformed_words.append(clean_w + "_neg" if negate_flag else clean_w)
+                if clean_w in negation_words:
+                    negate_flag = True
+            if has_ender or clean_w == "but":
+                negate_flag = False
+                
+        return " ".join(transformed_words)
 
     print("✅ Cleaning data and preparing splits...")
     df['clean_text'] = df['review'].apply(clean_text_basic)
